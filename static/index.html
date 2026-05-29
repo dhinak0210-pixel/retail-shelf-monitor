@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛒 Retail Shelf Monitor</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🛒 Retail Shelf Monitor</h1>
+            <div class="status-bar">
+                <span id="connection-status" class="status disconnected">● Disconnected</span>
+                <span id="fps-display">FPS: --</span>
+                <span id="inference-time">Inference: -- ms</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Video Feed Panel -->
+            <div class="video-panel">
+                <div class="panel-header">
+                    <h2>Live Feed</h2>
+                    <div class="feed-controls">
+                        <button id="toggle-grid" class="btn active">Grid</button>
+                        <button id="toggle-heatmap" class="btn">Heatmap</button>
+                        <button id="toggle-detections" class="btn active">Boxes</button>
+                        <button id="toggle-roi" class="btn">📐 Draw ROI</button>
+                        <button id="toggle-dwell" class="btn">🚶 Dwell Path</button>
+                    </div>
+                </div>
+                <div class="video-container" style="position: relative;">
+                    <div id="camera-health-warning" style="display: none; position: absolute; top: 10px; left: 10px; right: 10px; background: rgba(239, 68, 68, 0.95); color: white; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.2); z-index: 100; box-shadow: 0px 4px 15px rgba(0,0,0,0.4); text-align: center;">
+                        ⚠️ CAMERA HEALTH ALERT: Lens Occluded (Lens completely covered, dark, or blocked)
+                    </div>
+                    <img id="video-feed" src="/video_feed" alt="Live shelf feed" style="user-select: none; -webkit-user-drag: none;">
+                    <canvas id="heatmap-overlay"></canvas>
+                    <canvas id="dwell-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 8;"></canvas>
+                    <canvas id="roi-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;"></canvas>
+                    <div id="roi-instruction" style="display: none; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.75rem; border: 1px solid var(--accent); z-index: 100; pointer-events: none; box-shadow: 0px 4px 15px rgba(0,0,0,0.5);">
+                        🖱️ Click & Drag on video to draw the outer shelf region
+                    </div>
+                </div>
+                <div class="video-info">
+                    <span id="resolution">640×640</span>
+                    <span id="model-info">YOLOv8n</span>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Stats Panel -->
+                <div class="panel stats-panel">
+                    <h3>📊 Shelf Stats</h3>
+                    <div class="stat-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="fill-rate">--%</div>
+                            <div class="stat-label">Fill Rate</div>
+                            <div class="stat-bar">
+                                <div class="stat-bar-fill" id="fill-bar"></div>
+                            </div>
+                        </div>
+                        <div class="stat-card warning">
+                            <div class="stat-value" id="oos-count">--</div>
+                            <div class="stat-label">OOS Now</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="compliance">--%</div>
+                            <div class="stat-label">Compliance</div>
+                        </div>
+                        <div class="stat-card danger">
+                            <div class="stat-value" id="misplacements">--</div>
+                            <div class="stat-label">Misplaced</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detection-list">
+                        <h4>Recent Detections</h4>
+                        <ul id="detections-list"></ul>
+                    </div>
+                    
+                    <div class="forecast-list" style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.8rem;">
+                        <h4>📈 Stockout Projections</h4>
+                        <div id="forecast-feed" style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                            <!-- Dynamically loaded forecasting entries -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Control & Settings Panel -->
+                <div class="panel control-panel">
+                    <h3>⚙️ Settings & Control</h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-top: 0.5rem;">
+                        <!-- Model Selection -->
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <label style="font-size: 0.85rem; color: var(--text-secondary);">YOLOv8 Model:</label>
+                            <select id="model-selector" class="btn" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.8rem; cursor: pointer;">
+                                <option value="n">Nano (Fast)</option>
+                                <option value="s">Small (Balanced)</option>
+                                <option value="m">Medium (Accurate)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Audio Toggle Switch -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 0.8rem; margin-top: 0.2rem;">
+                            <label style="font-size: 0.85rem; color: var(--text-secondary);">🔔 Notification Sound:</label>
+                            <button id="toggle-sound-settings" class="btn active" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; display: block; outline: none; border-radius: 6px;">🔊 Sound On</button>
+                        </div>
+                        
+                        <!-- FPS Slider -->
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-secondary);">
+                                <label>Max Frame Rate:</label>
+                                <span id="fps-val">15 FPS</span>
+                            </div>
+                            <input type="range" id="fps-slider" min="1" max="30" value="15" style="width: 100%; cursor: pointer;">
+                        </div>
+                        
+                        <!-- Resolution Scale Slider -->
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-secondary);">
+                                <label>Resolution Scale:</label>
+                                <span id="res-val">100% (720p)</span>
+                            </div>
+                            <input type="range" id="res-slider" min="0.1" max="1.0" step="0.1" value="1.0" style="width: 100%; cursor: pointer;">
+                        </div>
+                        
+                        <!-- Campaign Planogram Switcher -->
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem; border-top: 1px solid var(--border); padding-top: 0.8rem; margin-top: 0.4rem;">
+                            <label style="font-size: 0.85rem; color: var(--text-secondary);">🗂️ Campaign Template:</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <select id="template-selector" class="btn" style="flex: 2; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.8rem; cursor: pointer; outline: none;">
+                                    <option value="default">default</option>
+                                    <option value="summer_beverages">summer_beverages</option>
+                                    <option value="winter_stock">winter_stock</option>
+                                </select>
+                                <button id="btn-load-template" class="btn" style="flex: 1; padding: 0.25rem; font-size: 0.8rem; background: var(--accent); color: white; border-radius: 4px; border: none; cursor: pointer; display: block;">Load</button>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                                <input type="text" id="new-template-name" placeholder="new_campaign_name" style="flex: 2; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.8rem; outline: none;">
+                                <button id="btn-save-template" class="btn" style="flex: 1; padding: 0.25rem; font-size: 0.8rem; background: var(--success); color: white; border-radius: 4px; border: none; cursor: pointer; display: block;">Save</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <a id="btn-export-csv" href="/api/reports/export" class="btn" style="flex: 1; text-align: center; text-decoration: none; padding: 0.45rem; font-size: 0.8rem; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px; display: block; cursor: pointer;">📥 CSV Logs</a>
+                            <a id="btn-audit-report" href="/report" target="_blank" class="btn" style="flex: 1; text-align: center; text-decoration: none; padding: 0.45rem; font-size: 0.8rem; background: var(--accent); color: white; border-radius: 4px; display: block; cursor: pointer;">📊 SLA PDF Report</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alert Feed -->
+                <div class="panel alert-panel">
+                    <h3>🔔 Alerts</h3>
+                    <div id="alert-feed" class="alert-feed"></div>
+                </div>
+
+                <!-- Grid Status -->
+                <div class="panel grid-panel">
+                    <h3>🎯 Grid Target Rules (Click to Edit)</h3>
+                    <div id="grid-visual" class="grid-visual"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid Selector Context Menu Modal -->
+    <div id="grid-context-menu" style="display: none; position: absolute; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0px 4px 20px rgba(0,0,0,0.5); z-index: 1000; padding: 0.5rem; width: 140px; flex-direction: column; gap: 0.25rem;">
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem; text-align: center; font-weight: bold;">Change SKU Target</div>
+        <button class="context-option btn" data-sku="Soda" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; text-align: left; width: 100%; cursor: pointer;">🥤 Soda</button>
+        <button class="context-option btn" data-sku="Chips" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; text-align: left; width: 100%; cursor: pointer;">🍟 Chips</button>
+        <button class="context-option btn" data-sku="Water" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; text-align: left; width: 100%; cursor: pointer;">💧 Water</button>
+        <button class="context-option btn" data-sku="Empty" style="padding: 0.3rem 0.5rem; font-size: 0.75rem; text-align: left; width: 100%; cursor: pointer;">❌ Clear Target</button>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Audio for alerts -->
+    <audio id="alert-sound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE" type="audio/wav">
+    </audio>
+
+    <script src="/static/js/stats.js"></script>
+    <script src="/static/js/alerts.js"></script>
+    <script src="/static/js/heatmap.js"></script>
+</body>
+</html>

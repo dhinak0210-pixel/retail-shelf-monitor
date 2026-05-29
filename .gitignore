@@ -1,0 +1,25 @@
+# Environments
+.venv/
+venv/
+ENV/
+env/
+*.env
+
+# Caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Databases
+*.db
+data/*.db
+
+# Heavy datasets and runs
+dataset/
+runs/
+weights/*.pt
+yolov8n.pt
+
+# System files
+.DS_Store
+deploy_hf.py

@@ -1,0 +1,9 @@
+path: /home/dhina/Real-Time Object Detection App/retail-shelf-monitor/dataset # dataset root dir
+train: images/train # train images
+val: images/val # val images
+
+# Classes
+names:
+  0: Soda
+  1: Chips
+  2: Water

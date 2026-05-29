@@ -1,0 +1,94 @@
+{
+  "layout": [
+    {
+      "row": 0,
+      "col": 0,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 0,
+      "col": 1,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 0,
+      "col": 2,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 0,
+      "col": 3,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 0,
+      "col": 4,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 0,
+      "col": 5,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 1,
+      "col": 0,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 1,
+      "col": 1,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 1,
+      "col": 2,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 1,
+      "col": 3,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 1,
+      "col": 4,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 1,
+      "col": 5,
+      "expected_class": "Soda"
+    },
+    {
+      "row": 2,
+      "col": 0,
+      "expected_class": "Water"
+    },
+    {
+      "row": 2,
+      "col": 1,
+      "expected_class": "Water"
+    },
+    {
+      "row": 2,
+      "col": 2,
+      "expected_class": "Water"
+    },
+    {
+      "row": 2,
+      "col": 3,
+      "expected_class": "Water"
+    },
+    {
+      "row": 2,
+      "col": 4,
+      "expected_class": "Water"
+    },
+    {
+      "row": 2,
+      "col": 5,
+      "expected_class": "Water"
+    }
+  ]
+}
