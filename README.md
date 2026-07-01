@@ -21,8 +21,32 @@ A high-fidelity, real-time AI retail shelf compliance and telemetry monitor util
 
 ## 🚀 Running Locally
 
-Build and run the container on your local machine:
+### Option 1: Standard Virtual Environment (Local Run)
+Initialize the virtual environment and install requirements:
+```bash
+chmod +x setup.sh && ./setup.sh
+```
+
+Verify your setup, database schema, and YOLOv8 inference speed:
+```bash
+python3 diagnose.py
+```
+
+Launch the FastAPI web dashboard:
+```bash
+source venv/bin/activate
+uvicorn server:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Option 2: Docker Containerization
+Build and run the container:
 ```bash
 docker build -t shelf-monitor .
 docker run -p 7860:7860 --device=/dev/video0:/dev/video0 shelf-monitor
 ```
+
+---
+
+## 🛠️ Extended Guides
+* **[DEVELOPMENT.md](DEVELOPMENT.md)**: Comprehensive guide on system architecture, database schemas, custom YOLOv8 model training, data augmentation pipelines, and troubleshooting.
+

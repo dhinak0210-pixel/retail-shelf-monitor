@@ -48,33 +48,38 @@ class AlertManager {
             this.audio.play().catch(e => console.log('Audio play failed:', e));
         }
         
-        // Create toast
-        const toast = document.createElement('div');
-        toast.className = `toast ${alert.severity}`;
+        // Only show sliding toast popups for manual user action feedbacks,
+        // and show the automatic compliance alerts directly in the feed without the toast popup.
+        const isAutoAlert = alert.type === 'oos' || alert.type === 'misplaced';
         
-        const icon = alert.severity === 'critical' ? '🔴' : 
-                     alert.severity === 'warning' ? '🟡' : '🔵';
+        if (!isAutoAlert) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${alert.severity || 'info'}`;
+            
+            const icon = alert.severity === 'critical' ? '🔴' : 
+                         alert.severity === 'warning' ? '🟡' : '🔵';
+            
+            const time = new Date((alert.timestamp || (now / 1000)) * 1000).toLocaleTimeString();
+            
+            toast.innerHTML = `
+                <div class="toast-title">${icon} ${(alert.type || 'info').toUpperCase()}</div>
+                <div class="toast-message">${alert.message}</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                    ${time}
+                </div>
+            `;
+            
+            this.container.appendChild(toast);
+            
+            // Auto remove
+            setTimeout(() => {
+                toast.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
         
-        const time = new Date(alert.timestamp * 1000).toLocaleTimeString();
-        
-        toast.innerHTML = `
-            <div class="toast-title">${icon} ${alert.type.toUpperCase()}</div>
-            <div class="toast-message">${alert.message}</div>
-            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
-                ${time}
-            </div>
-        `;
-        
-        this.container.appendChild(toast);
-        
-        // Add to feed
+        // Add to feed (so the message is always visible in the active alerts list)
         this.addToFeed(alert);
-        
-        // Auto remove
-        setTimeout(() => {
-            toast.style.animation = 'slideInRight 0.3s ease reverse';
-            setTimeout(() => toast.remove(), 300);
-        }, 5000);
         
         // Store history
         this.alertHistory.push(alert);

@@ -345,6 +345,80 @@ class StatsManager {
             });
         });
 
+        // Camera Source Selection & API Posting
+        const sourceTypeSelector = document.getElementById('source-type-selector');
+        const webcamInputContainer = document.getElementById('webcam-input-container');
+        const rtspInputContainer = document.getElementById('rtsp-input-container');
+        const btnApplySource = document.getElementById('btn-apply-source');
+
+        if (sourceTypeSelector && btnApplySource) {
+            sourceTypeSelector.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val === 'synthetic') {
+                    webcamInputContainer.style.display = 'none';
+                    rtspInputContainer.style.display = 'none';
+                } else if (val === 'webcam') {
+                    webcamInputContainer.style.display = 'flex';
+                    rtspInputContainer.style.display = 'none';
+                } else if (val === 'rtsp') {
+                    webcamInputContainer.style.display = 'none';
+                    rtspInputContainer.style.display = 'flex';
+                }
+            });
+
+            btnApplySource.addEventListener('click', () => {
+                const type = sourceTypeSelector.value;
+                let finalSource = 'synthetic';
+
+                if (type === 'webcam') {
+                    finalSource = document.getElementById('webcam-index-input').value;
+                } else if (type === 'rtsp') {
+                    finalSource = document.getElementById('rtsp-url-input').value.trim();
+                    if (!finalSource) {
+                        window.alertManager?.showAlert({
+                            type: 'error',
+                            message: 'RTSP URL or Video File Path cannot be empty!'
+                        });
+                        return;
+                    }
+                }
+
+                btnApplySource.disabled = true;
+                btnApplySource.textContent = 'Applying Source...';
+
+                fetch('/api/source', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source: String(finalSource) })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    btnApplySource.disabled = false;
+                    btnApplySource.textContent = 'Apply Camera Source';
+                    
+                    if (data.status === 'success' || data.message) {
+                        window.alertManager?.showAlert({
+                            type: 'success',
+                            message: `Camera feed switched to: ${finalSource}`
+                        });
+                    } else {
+                        window.alertManager?.showAlert({
+                            type: 'error',
+                            message: `Failed to switch source: ${data.message || 'Unknown error'}`
+                        });
+                    }
+                })
+                .catch(err => {
+                    btnApplySource.disabled = false;
+                    btnApplySource.textContent = 'Apply Camera Source';
+                    window.alertManager?.showAlert({
+                        type: 'error',
+                        message: `Error connecting to API: ${err.message}`
+                    });
+                });
+            });
+        }
+
         // Adaptive Settings Slider Controllers
         const fpsSlider = document.getElementById('fps-slider');
         const resSlider = document.getElementById('res-slider');
