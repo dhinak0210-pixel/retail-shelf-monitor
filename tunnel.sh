@@ -12,9 +12,9 @@ if [ -f .env ]; then
     echo "🔑 Loaded Cloudflare credentials from .env"
 fi
 
-# Check if cloudflared is installed
-if ! command -v cloudflared &> /dev/null; then
-    echo "⚠️  'cloudflared' command not found. Installing now..."
+# Check if cloudflared is installed or present locally
+if ! command -v cloudflared &> /dev/null && [ ! -f ./cloudflared ]; then
+    echo "⚠️  'cloudflared' command not found. Downloading locally now..."
     
     # Check OS architecture
     ARCH=$(uname -m)
@@ -26,24 +26,27 @@ if ! command -v cloudflared &> /dev/null; then
         curl -L --output cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
     else
         echo "❌ Unsupported architecture: $ARCH"
-        echo "   Install manually: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/"
         exit 1
     fi
     
     chmod +x cloudflared
-    sudo mv cloudflared /usr/local/bin/
-    echo "✅ 'cloudflared' installed successfully!"
+    echo "✅ 'cloudflared' downloaded successfully!"
+fi
+
+CLOUDFLARED_CMD="cloudflared"
+if [ -f ./cloudflared ]; then
+    CLOUDFLARED_CMD="./cloudflared"
 fi
 
 # Determine tunnel execution strategy
 if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
     echo "🚀 Using your Cloudflare API Token to configure a stable, persistent tunnel..."
     export TUNNEL_APITOKEN=$CLOUDFLARE_API_TOKEN
-    cloudflared tunnel --url http://localhost:8000
+    $CLOUDFLARED_CMD tunnel --url http://localhost:8000
 else
     # Run dynamic zero-configuration tunnel
     echo "🚀 Starting free Cloudflare Tunnel mapped to http://localhost:8000..."
     echo "   Look for the 'https://*.trycloudflare.com' link in the output below!"
     echo "=========================================================================="
-    cloudflared tunnel --url http://localhost:8000
+    $CLOUDFLARED_CMD tunnel --url http://localhost:8000
 fi
